@@ -44,7 +44,7 @@
             margin-top: 1rem;
         }
 
-        /* --- אנימציות מעבר --- */
+        /* Animations */
         @keyframes mega-shake {
             0% { transform: translate(0,0) rotate(0); }
             10% { transform: translate(-20px, -20px) rotate(-5deg); }
@@ -75,13 +75,12 @@
             animation: floatUp 1s forwards;
             z-index: 50;
         }
-        .token-feedback { color: #8b5cf6; } /* סגול לאסימונים */
+        .token-feedback { color: #8b5cf6; }
         @keyframes floatUp {
             0% { transform: translateY(0); opacity: 1; }
             100% { transform: translateY(-100px); opacity: 0; }
         }
 
-        /* --- מודאל הודעות --- */
         .popup-modal {
             position: fixed;
             top: 50%;
@@ -101,9 +100,9 @@
 
         progress { width: 100%; height: 8px; border-radius: 10px; }
         progress::-webkit-progress-value { background: #06b6d4; border-radius: 10px; }
-        .heal-progress::-webkit-progress-value { background: #22c55e; } /* ירוק לריפוי */
+        .heal-progress::-webkit-progress-value { background: #22c55e; }
 
-        /* --- מערכת החיידק --- */
+        /* Bacteria System */
         #bacteria-anim {
             position: fixed;
             font-size: 120px;
@@ -119,7 +118,6 @@
             100% { transform: scale(1.2) rotate(15deg); }
         }
 
-        /* קנבס לזיהום (מעל הכל חוץ מכפתורים) */
         #main-infection-canvas, #shop-infection-canvas {
             position: fixed;
             top: 0; left: 0;
@@ -132,39 +130,30 @@
         .spray-cursor-active {
             cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" style="font-size: 24px;"><text y="24">🧴</text></svg>') 16 16, auto !important;
         }
-        .spray-cursor-active button { cursor: inherit !important; }
 
         .sick-pet-filter {
             filter: sepia(1) hue-rotate(80deg) saturate(3) brightness(0.8);
         }
-
     </style>
 </head>
 <body>
 
     <div id="flash-overlay"></div>
     <div id="black-screen"></div>
-    
-    <!-- אנימציית החיידק -->
     <div id="bacteria-anim">🦠</div>
-    
-    <!-- קנבס זיהום מרכזי -->
     <canvas id="main-infection-canvas"></canvas>
 
-    <!-- מודאל הודעת מתכון וכללי -->
     <div id="recipe-popup" class="popup-modal z-[300]">
         <div id="recipe-msg" class="text-xl font-bold text-gray-800 leading-relaxed whitespace-pre-line"></div>
         <div id="timer-container" class="mt-4 text-sm text-red-500 font-bold hidden">הודעה זו תיעלם בעוד: <span id="timer-sec">60</span> שניות</div>
         <button onclick="closeRecipe()" class="mt-4 bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-full font-bold transition-all">הבנתי!</button>
     </div>
 
-    <!-- כפתור ספריי -->
     <button id="spray-btn" onclick="toggleSpray()" class="fixed bottom-6 right-6 bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-full font-black shadow-2xl z-50 text-lg hidden border-4 border-white transition-transform hover:scale-110">
         🧴 נוגד חיידקים
     </button>
 
     <div id="game-ui" class="w-full max-w-4xl px-4 flex flex-col items-center">
-        <!-- Stats -->
         <div class="w-full flex flex-wrap justify-between items-center mb-6 gap-4 z-10">
             <div class="flex gap-2">
                 <div class="bg-white px-4 py-2 rounded-full shadow-md font-bold text-yellow-600">💰 <span id="coins">0</span></div>
@@ -178,7 +167,6 @@
             </div>
         </div>
 
-        <!-- Main Card -->
         <div id="main-card" class="game-card text-center z-10">
             <div id="problem-area">
                 <p class="text-gray-400 font-bold mb-2">כמה זה?</p>
@@ -195,15 +183,12 @@
         </div>
     </div>
 
-    <!-- Shop Overlay -->
     <div id="shop-overlay" class="fixed inset-0 bg-black/60 hidden z-40 p-4 items-center justify-center">
-        <!-- קנבס זיהום חנות -->
         <canvas id="shop-infection-canvas"></canvas>
-        
         <div id="shop-modal-content" class="bg-white rounded-3xl w-full max-w-md max-h-[90vh] flex flex-col z-[60] relative overflow-hidden">
             <div class="p-5 border-b flex justify-between items-center bg-white/90 backdrop-blur">
-                <h2 class="font-black text-xl">חנות החיות 🐾</h2>
-                <button onclick="toggleShop()" class="text-2xl font-bold">&times;</button>
+                <h2 class="font-black text-xl text-black">חנות החיות 🐾</h2>
+                <button onclick="toggleShop()" class="text-2xl font-bold text-black">&times;</button>
             </div>
             <div class="p-5 overflow-y-auto z-10 relative">
                 <div class="bg-purple-50 border-2 border-purple-200 rounded-2xl p-4 mb-6 text-sm text-purple-900 leading-relaxed font-bold">
@@ -229,22 +214,18 @@
             { id: 'dragon', name: 'דרקון', emoji: '🐲', price: 3000, power: 100, diamondCost: 15, tokenCost: 15, msg: 'היי תום אני שמח לבשר לך את החלק האחרון במתכון החיות:\n\n"6. דבר שישי ואחרון עליך לענות נכון על השאלה שמופיעה כרגע"\n\nבהצלחה תום אני מאמין בך!!!' }
         ];
 
-        // מבנה סטייט התחלתי (כולל החדשים)
         const defaultState = {
             coins: 0, diamonds: 0, streak: 0,
             owned: ['chick'], active: 'chick', isMagic: false,
             growth: {}, feeds: {}, recipeStep: 0,
-            
-            // תוספות חיידק (השמירה הישנה פשוט תאמץ אותם ככה שכלום לא נמחק)
-            tokens: 0, 
-            isInfectedMode: false, 
-            cleanedMain: false, 
-            cleanedShop: false, 
-            infections: {} // { 'chick': 0...100 } -> 100 אומר בריא
+            tokens: 0, isInfectedMode: false, 
+            cleanedMain: false, cleanedShop: false, 
+            infections: {},
+            // שמירת שכבות הקנבס ב-Base64
+            mainCanvasData: null, shopCanvasData: null
         };
 
         let state = { ...defaultState };
-
         let currentAns = 0;
         let isProcessing = false;
         let recipeTimer = null;
@@ -255,20 +236,17 @@
         function init() {
             const saved = localStorage.getItem('math_quest_pro_v2');
             if (saved) {
-                // מזג את השמירה הישנה עם ברירות המחדל החדשות כדי לא לאבד נתונים!
-                state = { ...defaultState, ...JSON.parse(saved) };
+                const parsed = JSON.parse(saved);
+                state = { ...defaultState, ...parsed };
             }
             
+            initCanvases();
             if (state.isMagic) enableMagicUI();
             if (state.isInfectedMode) enableInfectionUI();
             
-            initCanvases();
             render();
             newProblem();
             setupSprayEvents();
-            
-            // בדיקה אם צריך להפעיל חיידק בפתיחה
-            checkBacteriaTrigger();
         }
 
         function initCanvases() {
@@ -277,26 +255,54 @@
             shopCanvas = document.getElementById('shop-infection-canvas');
             shopCtx = shopCanvas.getContext('2d');
 
-            function resize() {
+            const resize = () => {
+                const oldMain = state.mainCanvasData;
+                const oldShop = state.shopCanvasData;
+                
                 infectionCanvas.width = window.innerWidth;
                 infectionCanvas.height = window.innerHeight;
                 shopCanvas.width = window.innerWidth;
                 shopCanvas.height = window.innerHeight;
                 
-                // ציור הזיהום מחדש אם נדרש בעת שינוי גודל מסך
+                // שחזור ציור קיים אחרי שינוי גודל או רענון
                 if (state.isInfectedMode) {
-                    if (!state.cleanedMain) fillCanvasGreen(infectionCtx, infectionCanvas);
-                    if (!state.cleanedShop) fillCanvasGreen(shopCtx, shopCanvas);
+                    if (oldMain) {
+                        loadCanvasData(infectionCtx, oldMain);
+                    } else if (!state.cleanedMain) {
+                        fillCanvasGreen(infectionCtx, infectionCanvas);
+                    }
+
+                    if (oldShop) {
+                        loadCanvasData(shopCtx, oldShop);
+                    } else if (!state.cleanedShop) {
+                        fillCanvasGreen(shopCtx, shopCanvas);
+                    }
                 }
-            }
+            };
             window.addEventListener('resize', resize);
             resize();
         }
 
         function fillCanvasGreen(ctx, canvas) {
             ctx.globalCompositeOperation = 'source-over';
-            ctx.fillStyle = 'rgba(100, 255, 100, 0.45)'; // ירוק שקוף למחצה לפי הבקשה
+            ctx.fillStyle = 'rgba(100, 255, 100, 0.45)';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
+            saveCanvasState();
+        }
+
+        function loadCanvasData(ctx, data) {
+            const img = new Image();
+            img.onload = () => {
+                ctx.globalCompositeOperation = 'source-over';
+                ctx.drawImage(img, 0, 0, ctx.canvas.width, ctx.canvas.height);
+            };
+            img.src = data;
+        }
+
+        function saveCanvasState() {
+            state.mainCanvasData = infectionCanvas.toDataURL();
+            state.shopCanvasData = shopCanvas.toDataURL();
+            save();
         }
 
         function newProblem() {
@@ -342,7 +348,6 @@
                 btn.classList.replace('bg-indigo-50', 'bg-green-400');
                 btn.classList.add('text-white');
 
-                // מערכת אסימונים (רק כשיש חיידק)
                 if (state.isInfectedMode && state.streak > 0 && state.streak % 10 === 0) {
                     let earnedTokens = state.streak / 10;
                     state.tokens += earnedTokens;
@@ -353,14 +358,9 @@
                 const gLvl = state.growth[state.active] || 0;
                 let petBonus = pData.power * (1 + gLvl);
 
-                // השפעת החיידק על הרווחים
                 if (state.isInfectedMode) {
                     let hlth = state.infections[state.active] || 0;
-                    if (hlth < 100) {
-                        petBonus = Math.ceil(petBonus / 2); // חיה חולה = חצי רווח
-                    } else {
-                        petBonus = petBonus * 2; // חיה בריאה = כפול 2 ממה שהיה במקור!
-                    }
+                    petBonus = (hlth < 100) ? Math.ceil(petBonus / 2) : petBonus * 2;
                 }
 
                 const streakBonus = Math.floor(state.streak / 5) * 10;
@@ -400,42 +400,29 @@
             setTimeout(() => fb.remove(), 1500);
         }
 
-        // ---------- מערכת החיידק (שלב 3) ----------
-
         function checkBacteriaTrigger() {
             if (!state.isMagic || state.isInfectedMode) return;
-            
             const allOwned = petsData.length === state.owned.length;
             const allMaxLevel = petsData.every(p => (state.growth[p.id] || 0) >= 10);
-            
-            if (allOwned && allMaxLevel) {
-                triggerBacteriaInvasion();
-            }
+            if (allOwned && allMaxLevel) triggerBacteriaInvasion();
         }
 
         function triggerBacteriaInvasion() {
             state.isInfectedMode = true;
-            petsData.forEach(p => state.infections[p.id] = 0); // כולם חולים
+            petsData.forEach(p => state.infections[p.id] = 0);
             save();
             
             const bac = document.getElementById('bacteria-anim');
             bac.style.display = 'block';
-            let x = window.innerWidth / 2;
-            let y = window.innerHeight / 2;
-            bac.style.left = x + 'px';
-            bac.style.top = y + 'px';
-
             let jumps = 0;
-            fillCanvasGreen(infectionCtx, infectionCanvas); // מתחיל בירוק חלש
+            fillCanvasGreen(infectionCtx, infectionCanvas);
 
             const interval = setInterval(() => {
                 jumps++;
-                x = Math.random() * (window.innerWidth - 100);
-                y = Math.random() * (window.innerHeight - 100);
-                bac.style.left = x + 'px';
-                bac.style.top = y + 'px';
+                bac.style.left = Math.random() * (window.innerWidth - 100) + 'px';
+                bac.style.top = Math.random() * (window.innerHeight - 100) + 'px';
 
-                if (jumps > 15) { // אחרי מספיק קפיצות - לחנות
+                if (jumps > 15) {
                     clearInterval(interval);
                     const shopBtn = document.getElementById('shop-btn').getBoundingClientRect();
                     bac.style.transition = 'all 1s ease-in-out';
@@ -445,7 +432,7 @@
                     
                     setTimeout(() => {
                         bac.style.display = 'none';
-                        fillCanvasGreen(shopCtx, shopCanvas); // החנות מזוהמת
+                        fillCanvasGreen(shopCtx, shopCanvas);
                         enableInfectionUI();
                         showGeneralPopup("אוי לא! החיידק השתלט על המשחק ועל החיות! קחו את ספריי הנוגד והתחילו לנקות!");
                     }, 1000);
@@ -458,47 +445,45 @@
             if (!state.cleanedMain || !state.cleanedShop) {
                 document.getElementById('spray-btn').classList.remove('hidden');
             }
-            if (!state.cleanedMain && state.isInfectedMode) fillCanvasGreen(infectionCtx, infectionCanvas);
-            renderShop();
             render();
         }
 
         function toggleSpray() {
             sprayModeActive = !sprayModeActive;
-            if (sprayModeActive) {
-                document.body.classList.add('spray-cursor-active');
-            } else {
-                document.body.classList.remove('spray-cursor-active');
-            }
+            document.body.classList.toggle('spray-cursor-active', sprayModeActive);
         }
 
         function setupSprayEvents() {
-            document.addEventListener('mousedown', () => isMousePressed = true);
-            document.addEventListener('mouseup', () => {
-                isMousePressed = false;
-                checkCleanliness();
-            });
-            document.addEventListener('mousemove', (e) => {
-                if (isMousePressed && sprayModeActive) {
-                    // בדיקה אם מנסים לרסס חיה בתוך החנות
-                    const el = document.elementFromPoint(e.clientX, e.clientY);
-                    if (el && el.closest('.pet-item-row')) {
-                        const petId = el.closest('.pet-item-row').dataset.petId;
-                        if ((state.infections[petId] || 0) < 100) {
-                            showGeneralPopup("החיידק כבר השתלט על החיה");
-                            isMousePressed = false; // עוצר את הריסוס זמנית
-                            return;
-                        }
-                    }
+            const handleSpray = (e) => {
+                if (!isMousePressed || !sprayModeActive) return;
+                
+                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
 
-                    const shopOverlay = document.getElementById('shop-overlay');
-                    if (!shopOverlay.classList.contains('hidden') && !state.cleanedShop) {
-                        eraseCanvas(shopCtx, e.clientX, e.clientY);
-                    } else if (shopOverlay.classList.contains('hidden') && !state.cleanedMain) {
-                        eraseCanvas(infectionCtx, e.clientX, e.clientY);
+                const el = document.elementFromPoint(clientX, clientY);
+                if (el && el.closest('.pet-item-row')) {
+                    const petId = el.closest('.pet-item-row').dataset.petId;
+                    if ((state.infections[petId] || 0) < 100) {
+                        showGeneralPopup("החיידק כבר השתלט על החיה");
+                        isMousePressed = false;
+                        return;
                     }
                 }
-            });
+
+                const shopOverlay = document.getElementById('shop-overlay');
+                if (!shopOverlay.classList.contains('hidden') && !state.cleanedShop) {
+                    eraseCanvas(shopCtx, clientX, clientY);
+                } else if (shopOverlay.classList.contains('hidden') && !state.cleanedMain) {
+                    eraseCanvas(infectionCtx, clientX, clientY);
+                }
+            };
+
+            document.addEventListener('mousedown', () => isMousePressed = true);
+            document.addEventListener('touchstart', () => isMousePressed = true);
+            document.addEventListener('mouseup', () => { isMousePressed = false; checkCleanliness(); });
+            document.addEventListener('touchend', () => { isMousePressed = false; checkCleanliness(); });
+            document.addEventListener('mousemove', handleSpray);
+            document.addEventListener('touchmove', handleSpray);
         }
 
         function eraseCanvas(ctx, x, y) {
@@ -506,36 +491,34 @@
             ctx.beginPath();
             ctx.arc(x, y, 60, 0, Math.PI * 2);
             ctx.fill();
+            // שמירת מצב הקנבס בסטייט כל כמה שניות או אחרי סיום פעולה לביצועים
         }
 
         function checkCleanliness() {
             if (!sprayModeActive || !state.isInfectedMode) return;
             
-            // בודק ניקיון חנות
-            if (!document.getElementById('shop-overlay').classList.contains('hidden') && !state.cleanedShop) {
-                if (isCanvasClean(shopCtx, shopCanvas)) {
-                    state.cleanedShop = true;
-                    save(); checkAllClean();
-                }
-            } 
-            // בודק ניקיון ראשי
-            else if (!state.cleanedMain) {
-                if (isCanvasClean(infectionCtx, infectionCanvas)) {
-                    state.cleanedMain = true;
-                    save(); checkAllClean();
-                }
+            const isShop = !document.getElementById('shop-overlay').classList.contains('hidden');
+            const targetCtx = isShop ? shopCtx : infectionCtx;
+            const targetCanvas = isShop ? shopCanvas : infectionCanvas;
+            const cleanedKey = isShop ? 'cleanedShop' : 'cleanedMain';
+
+            if (!state[cleanedKey] && isCanvasClean(targetCtx, targetCanvas)) {
+                state[cleanedKey] = true;
+                targetCtx.clearRect(0, 0, targetCanvas.width, targetCanvas.height);
+                saveCanvasState();
+                checkAllClean();
+            } else {
+                saveCanvasState();
             }
         }
 
         function isCanvasClean(ctx, canvas) {
             const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
             let clearCount = 0;
-            // בודק פיקסלים בדילוגים לביצועים
-            for (let i = 3; i < imgData.data.length; i += 400) {
+            for (let i = 3; i < imgData.data.length; i += 800) {
                 if (imgData.data[i] === 0) clearCount++;
             }
-            const cleanRatio = clearCount / (imgData.data.length / 400);
-            return cleanRatio > 0.85; // אם 85% נקי - זה מספיק
+            return (clearCount / (imgData.data.length / 800)) > 0.85;
         }
 
         function checkAllClean() {
@@ -543,8 +526,6 @@
                 document.getElementById('spray-btn').classList.add('hidden');
                 sprayModeActive = false;
                 document.body.classList.remove('spray-cursor-active');
-                infectionCtx.clearRect(0,0, infectionCanvas.width, infectionCanvas.height);
-                shopCtx.clearRect(0,0, shopCanvas.width, shopCanvas.height);
                 showGeneralPopup("המסך והחנות נוקו! כעת עליכם לרפא את החיות בעזרת האסימונים שהרווחתם.");
             }
         }
@@ -554,42 +535,33 @@
             if (state.tokens >= p.tokenCost) {
                 state.tokens -= p.tokenCost;
                 state.infections[id] = (state.infections[id] || 0) + 1;
-                
                 if (state.infections[id] >= 100) {
                     showGeneralPopup("החיה הבריאה ועכשיו היא מרגישה כמו חדשה ועל כן היא רוצה לתת לכם בונוס של כפול 2 מטבעות!!!");
                 }
                 save(); render(); renderShop();
             } else {
-                showGeneralPopup(`אין לך מספיק אסימונים! ריפוי עולה ${p.tokenCost}🪙. תגיעו לרצפים של 10 כדי להרוויח אסימונים.`);
+                showGeneralPopup(`אין לך מספיק אסימונים! ריפוי עולה ${p.tokenCost}🪙.`);
             }
         }
 
-        // ---------- פונקציות בסיס ערוכות ----------
-
         function showGeneralPopup(text) {
             const popup = document.getElementById('recipe-popup');
-            const msg = document.getElementById('recipe-msg');
-            document.getElementById('timer-container').classList.add('hidden'); // מסתיר טיימר
-            msg.innerText = text;
+            document.getElementById('recipe-msg').innerText = text;
+            document.getElementById('timer-container').classList.add('hidden');
             popup.style.display = 'block';
         }
 
         function showRecipePopup(text) {
             const popup = document.getElementById('recipe-popup');
-            const msg = document.getElementById('recipe-msg');
-            const timerCont = document.getElementById('timer-container');
-            const timer = document.getElementById('timer-sec');
-            
-            msg.innerText = text;
-            timerCont.classList.remove('hidden');
+            document.getElementById('recipe-msg').innerText = text;
+            document.getElementById('timer-container').classList.remove('hidden');
             popup.style.display = 'block';
-            
             let sec = 60;
-            timer.innerText = sec;
+            document.getElementById('timer-sec').innerText = sec;
             if(recipeTimer) clearInterval(recipeTimer);
             recipeTimer = setInterval(() => {
                 sec--;
-                timer.innerText = sec;
+                document.getElementById('timer-sec').innerText = sec;
                 if(sec <= 0) closeRecipe();
             }, 1000);
         }
@@ -601,23 +573,22 @@
 
         function triggerMegaMagicEvent() {
             const body = document.body;
-            const flash = document.getElementById('flash-overlay');
-            const black = document.getElementById('black-screen');
             body.classList.add('mega-shake-active');
-            let flashInterval = setInterval(() => { flash.style.display = flash.style.display === 'none' ? 'block' : 'none'; }, 50);
+            let flash = document.getElementById('flash-overlay');
+            let flashInt = setInterval(() => flash.style.display = flash.style.display === 'none' ? 'block' : 'none', 50);
 
             setTimeout(() => {
-                clearInterval(flashInterval);
+                clearInterval(flashInt);
                 flash.style.display = 'none';
-                black.style.display = 'block';
+                document.getElementById('black-screen').style.display = 'block';
                 setTimeout(() => {
-                    black.style.display = 'none';
+                    document.getElementById('black-screen').style.display = 'none';
                     state.isMagic = true;
                     state.recipeStep = 0;
                     enableMagicUI();
-                    save();
-                    render();
-                    setTimeout(() => { body.classList.remove('mega-shake-active'); newProblem(); }, 2000);
+                    save(); render();
+                    body.classList.remove('mega-shake-active');
+                    newProblem();
                 }, 2500);
             }, 4000);
         }
@@ -637,7 +608,7 @@
             el.classList.toggle('hidden'); el.classList.toggle('flex');
             if (!el.classList.contains('hidden')) {
                 renderShop();
-                if (sprayModeActive) isMousePressed = false; // איפוס ריסוס במעבר
+                isMousePressed = false;
             }
         }
 
@@ -649,51 +620,47 @@
                 const isActive = state.active === p.id;
                 const gLvl = state.growth[p.id] || 0;
                 const feeds = state.feeds[p.id] || 0;
-                const hlth = state.infections[p.id] !== undefined ? state.infections[p.id] : 100; // אם אין נתון, 100
+                const hlth = state.infections[p.id] !== undefined ? state.infections[p.id] : 100;
                 const isSick = state.isInfectedMode && hlth < 100;
 
                 const item = document.createElement('div');
                 item.className = `pet-item-row p-4 rounded-2xl border-2 z-10 relative ${isActive ? 'border-purple-500 bg-purple-50' : 'border-gray-100 bg-white/90'}`;
                 item.dataset.petId = p.id;
                 
-                let html = `
+                item.innerHTML = `
                     <div class="flex items-center justify-between">
                         <div class="flex items-center gap-3">
                             <span class="text-4xl ${isSick ? 'sick-pet-filter' : ''}">${p.emoji}</span>
                             <div>
-                                <div class="font-bold text-lg">${p.name} ${gLvl > 0 ? `(רמה ${gLvl})` : ''}</div>
+                                <div class="font-bold text-lg text-black">${p.name} ${gLvl > 0 ? `(רמה ${gLvl})` : ''}</div>
                                 <div class="text-[11px] font-bold ${isSick ? 'text-red-500' : 'text-gray-500'}">
-                                    בונוס: ${isSick ? `+${Math.ceil((p.power * (1+gLvl))/2)} 💰 (מוחלש)` : `+${p.power * (1+gLvl) * (state.isInfectedMode && hlth >= 100 ? 2 : 1)} 💰`}
+                                    בונוס: ${isSick ? `+${Math.ceil((p.power * (1+gLvl))/2)} 💰` : `+${p.power * (1+gLvl) * (state.isInfectedMode && hlth >= 100 ? 2 : 1)} 💰`}
                                 </div>
                             </div>
                         </div>
                         <button onclick="${isOwned ? `selectPet('${p.id}')` : `buyPet('${p.id}', ${p.price})`}" 
-                                class="px-5 py-2 rounded-full font-black text-sm shadow-sm ${isActive ? 'bg-purple-600 text-white' : 'bg-gray-200 hover:bg-gray-300'}">
+                                class="px-5 py-2 rounded-full font-black text-sm shadow-sm ${isActive ? 'bg-purple-600 text-white' : 'bg-gray-200 hover:bg-gray-300 text-black'}">
                             ${isOwned ? (isActive ? 'פעיל' : 'בחר') : p.price + ' 💰'}
                         </button>
                     </div>
+                    ${isSick ? `
+                        <div class="mt-4 pt-3 border-t border-dashed border-red-300">
+                            <div class="flex justify-between text-xs mb-1 font-bold text-red-600"><span>בריאות:</span><span>${hlth}%</span></div>
+                            <progress value="${hlth}" max="100" class="heal-progress"></progress>
+                            <button onclick="healPet('${p.id}')" class="w-full mt-3 bg-green-500 hover:bg-green-600 text-white text-sm py-2 rounded-xl font-bold shadow-md">
+                                הברא אותי (${p.tokenCost}🪙)
+                            </button>
+                        </div>
+                    ` : (state.isMagic && isOwned && gLvl < 10 && !state.isInfectedMode ? `
+                        <div class="mt-3 pt-3 border-t border-dashed">
+                            <div class="flex justify-between text-[10px] mb-1 font-bold text-black"><span>רמה ${gLvl + 1}:</span><span>${feeds}/10</span></div>
+                            <progress value="${feeds}" max="10"></progress>
+                            <button onclick="feedPet('${p.id}')" class="w-full mt-2 bg-cyan-500 hover:bg-cyan-600 text-white text-xs py-1.5 rounded-lg font-bold">
+                                האכל ב-${p.diamondCost} 💎
+                            </button>
+                        </div>
+                    ` : '')}
                 `;
-
-                // אם במצב חיידק והחיה חולה
-                if (isSick) {
-                    html += `<div class="mt-4 pt-3 border-t border-dashed border-red-300">
-                        <div class="flex justify-between text-xs mb-1 font-bold text-red-600"><span>בריאות:</span><span>${hlth}%</span></div>
-                        <progress value="${hlth}" max="100" class="heal-progress w-full h-3"></progress>
-                        <button onclick="healPet('${p.id}')" class="w-full mt-3 bg-green-500 hover:bg-green-600 text-white text-sm py-2 rounded-xl font-bold shadow-md transition-transform active:scale-95">
-                            הברא אותי (${p.tokenCost}🪙)
-                        </button></div>`;
-                }
-                // אם קסם רגיל / הבריאה (האכלה רגילה, אלא אם הגיע למקסימום 10)
-                else if (state.isMagic && isOwned && gLvl < 10 && !state.isInfectedMode) {
-                    html += `<div class="mt-3 pt-3 border-t border-dashed">
-                        <div class="flex justify-between text-[10px] mb-1 font-bold"><span>התקדמות לרמה ${gLvl + 1}:</span><span>${feeds}/10</span></div>
-                        <progress value="${feeds}" max="10"></progress>
-                        <button onclick="feedPet('${p.id}')" class="w-full mt-2 bg-cyan-500 hover:bg-cyan-600 text-white text-xs py-1.5 rounded-lg font-bold shadow-sm transition-transform active:scale-95">
-                            האכל ב-${p.diamondCost} 💎
-                        </button></div>`;
-                }
-
-                item.innerHTML = html;
                 list.appendChild(item);
             });
         }
@@ -703,8 +670,7 @@
                 state.coins -= price; state.owned.push(id); 
                 const p = petsData.find(x => x.id === id);
                 if(p.msg) showRecipePopup(p.msg);
-                save(); render(); renderShop(); 
-                checkBacteriaTrigger();
+                save(); render(); renderShop(); checkBacteriaTrigger();
             }
         }
 
@@ -733,30 +699,21 @@
             document.getElementById('diamonds').innerText = state.diamonds;
             document.getElementById('tokens').innerText = state.tokens;
             document.getElementById('streak').innerText = state.streak;
-            
             const p = petsData.find(x => x.id === state.active);
             const gLvl = state.growth[state.active] || 0;
             const emojiEl = document.getElementById('active-pet-emoji');
-            
             emojiEl.innerText = p.emoji;
             document.getElementById('pet-info').innerText = `${p.name} | רמה ${gLvl}`;
-            const scale = 1 + (gLvl * 0.15);
-            emojiEl.style.transform = `scale(${scale})`;
-
-            // פילטר חולי לחיה הפעילה במסך הראשי
-            if (state.isInfectedMode && (state.infections[state.active] || 0) < 100) {
-                emojiEl.classList.add('sick-pet-filter');
-            } else {
-                emojiEl.classList.remove('sick-pet-filter');
-            }
+            emojiEl.style.transform = `scale(${1 + (gLvl * 0.15)})`;
+            const isSick = state.isInfectedMode && (state.infections[state.active] || 0) < 100;
+            emojiEl.classList.toggle('sick-pet-filter', isSick);
         }
 
         function spawnCoinFeedback(amount) {
             const fb = document.createElement('div');
             fb.className = 'coin-feedback text-3xl';
             fb.innerText = `+${amount}💰`;
-            fb.style.left = '50%';
-            fb.style.top = '20%';
+            fb.style.left = '50%'; fb.style.top = '20%';
             document.getElementById('main-card').appendChild(fb);
             setTimeout(() => fb.remove(), 1000);
         }
