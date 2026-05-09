@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>הרפתקת הכפל - לומדים וקונים</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@400;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Assistant', sans-serif;
+            background: linear-gradient(135deg, #f6d365 0%, #fda085 100%);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        .game-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 2rem;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        .stat-badge {
+            background: white;
+            padding: 0.5rem 1.25rem;
+            border-radius: 9999px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .answer-btn {
+            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .answer-btn:hover {
+            transform: scale(1.05);
+        }
+        .answer-btn:active {
+            transform: scale(0.95);
+        }
+        .floating {
+            animation: floating 3s ease-in-out infinite;
+        }
+        @keyframes floating {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
+        }
+        .confetti {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background-color: #f00;
+            z-index: 100;
+        }
+        .pet-card {
+            border: 4px solid transparent;
+            transition: all 0.3s ease;
+        }
+        .pet-card.owned {
+            border-color: #4ade80;
+            background-color: #f0fdf4;
+        }
+        .locked {
+            filter: grayscale(1);
+            opacity: 0.7;
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8 flex flex-col items-center justify-center">
+
+    <!-- Top Stats Bar -->
+    <div class="max-w-4xl w-full flex flex-wrap justify-between items-center gap-4 mb-8">
+        <div class="flex gap-4">
+            <div class="stat-badge text-yellow-600 font-bold text-xl">
+                <span>💰</span>
+                <span id="coins">0</span>
+            </div>
+            <div class="stat-badge text-red-500 font-bold text-xl">
+                <span>🔥</span>
+                <span id="streak">0</span>
+            </div>
+        </div>
+        <button onclick="toggleShop()" class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-full font-bold shadow-lg flex items-center gap-2 transition-colors">
+            <span>🛒</span>
+            <span>חנות חיות</span>
+        </button>
+    </div>
+
+    <!-- Main Game Area -->
+    <div id="game-view" class="max-w-2xl w-full game-card p-8 text-center relative overflow-hidden">
+        <div id="feedback" class="absolute top-4 left-0 right-0 font-bold text-2xl transition-all opacity-0 pointer-events-none"></div>
+        
+        <div class="mb-8">
+            <h2 class="text-gray-500 text-lg mb-2">פתור את התרגיל:</h2>
+            <div id="problem" class="text-7xl md:text-8xl font-extrabold text-indigo-900 tracking-tight flex justify-center items-center gap-4">
+                <span id="num1">?</span>
+                <span class="text-indigo-400">×</span>
+                <span id="num2">?</span>
+            </div>
+        </div>
+
+        <div id="options" class="grid grid-cols-2 gap-4 mt-8">
+            <!-- Buttons will be generated here -->
+        </div>
+
+        <!-- Active Pet Area -->
+        <div id="active-pet-container" class="mt-12 h-24 flex flex-col items-center justify-center gap-2">
+            <div id="active-pet-emoji" class="text-5xl floating"></div>
+            <div id="active-pet-name" class="text-sm font-bold text-gray-500"></div>
+        </div>
+    </div>
+
+    <!-- Shop Modal (Overlay) -->
+    <div id="shop-overlay" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-3xl max-w-2xl w-full max-h-[80vh] overflow-hidden flex flex-col">
+            <div class="p-6 border-b flex justify-between items-center bg-purple-50">
+                <h2 class="text-2xl font-black text-purple-800">חנות החיות המלכותית 🐾</h2>
+                <button onclick="toggleShop()" class="text-gray-400 hover:text-gray-600 text-3xl">&times;</button>
+            </div>
+            <div class="p-6 overflow-y-auto grid grid-cols-1 md:grid-cols-2 gap-4" id="shop-grid">
+                <!-- Shop items will be generated here -->
+            </div>
+            <div class="p-6 border-t bg-gray-50 text-center">
+                <p class="text-gray-600">אסוף את כל החיות!</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Game State
+        let gameState = {
+            coins: 0,
+            streak: 0,
+            currentProblem: { n1: 0, n2: 0, answer: 0 },
+            ownedPets: ['אפרוח'], // Starting pet
+            activePet: 'אפרוח',
+            pets: [
+                { name: 'אפרוח', emoji: '🐥', price: 0, desc: 'חבר קטן להתחלה' },
+                { name: 'חתלתול', emoji: '🐱', price: 50, desc: 'מיאו! הוא ממש חמוד' },
+                { name: 'כלבלב', emoji: '🐶', price: 100, desc: 'החבר הכי טוב שלך' },
+                { name: 'ארנב', emoji: '🐰', price: 250, desc: 'קופץ משמחה בכל פעם שתצליח' },
+                { name: 'פנדה', emoji: '🐼', price: 500, desc: 'נדיר מאוד ואוהב במבוק' },
+                { name: 'חד קרן', emoji: '🦄', price: 1000, desc: 'החיה הכי קסומה בממלכה' },
+                { name: 'דרקון', emoji: '🐲', price: 2500, desc: 'רק אלופי הכפל האמיתיים יכולים לאלף אותו' }
+            ]
+        };
+
+        // Initialize Game
+        function init() {
+            loadProgress();
+            generateProblem();
+            updateUI();
+            renderShop();
+        }
+
+        function generateProblem() {
+            // Numbers 2 to 9 as requested
+            const n1 = Math.floor(Math.random() * 8) + 2;
+            const n2 = Math.floor(Math.random() * 8) + 2;
+            const answer = n1 * n2;
+            
+            gameState.currentProblem = { n1, n2, answer };
+            
+            document.getElementById('num1').innerText = n1;
+            document.getElementById('num2').innerText = n2;
+
+            // Generate options
+            let options = [answer];
+            while (options.length < 4) {
+                let wrong = (Math.floor(Math.random() * 8) + 2) * (Math.floor(Math.random() * 8) + 2);
+                if (!options.includes(wrong)) options.push(wrong);
+            }
+            
+            // Shuffle
+            options.sort(() => Math.random() - 0.5);
+
+            const optionsDiv = document.getElementById('options');
+            optionsDiv.innerHTML = '';
+            options.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.className = "answer-btn bg-white border-4 border-indigo-100 hover:border-indigo-400 text-indigo-900 text-3xl font-bold py-6 rounded-2xl shadow-sm";
+                btn.innerText = opt;
+                btn.onclick = () => checkAnswer(opt);
+                optionsDiv.appendChild(btn);
+            });
+        }
+
+        function checkAnswer(selected) {
+            const isCorrect = selected === gameState.currentProblem.answer;
+            const feedback = document.getElementById('feedback');
+            
+            if (isCorrect) {
+                gameState.streak++;
+                // Bonus coins based on streak
+                const earned = 10 + Math.floor(gameState.streak / 3) * 5;
+                gameState.coins += earned;
+                
+                showFeedback("נכון מאוד! +" + earned + "💰", "text-green-500");
+                triggerConfetti();
+                saveProgress();
+                setTimeout(generateProblem, 600);
+            } else {
+                gameState.streak = 0;
+                showFeedback("אופס! נסה שוב", "text-red-500");
+                // Visual shake
+                document.getElementById('game-view').classList.add('animate-bounce');
+                setTimeout(() => document.getElementById('game-view').classList.remove('animate-bounce'), 500);
+            }
+            updateUI();
+        }
+
+        function showFeedback(text, colorClass) {
+            const feedback = document.getElementById('feedback');
+            feedback.innerText = text;
+            feedback.className = `absolute top-4 left-0 right-0 font-bold text-2xl transition-all opacity-100 ${colorClass}`;
+            setTimeout(() => {
+                feedback.style.opacity = '0';
+            }, 1000);
+        }
+
+        function updateUI() {
+            document.getElementById('coins').innerText = gameState.coins;
+            document.getElementById('streak').innerText = gameState.streak;
+            
+            // Update active pet
+            const petObj = gameState.pets.find(p => p.name === gameState.activePet);
+            if (petObj) {
+                document.getElementById('active-pet-emoji').innerText = petObj.emoji;
+                document.getElementById('active-pet-name').innerText = petObj.name;
+            }
+        }
+
+        function toggleShop() {
+            const shop = document.getElementById('shop-overlay');
+            shop.classList.toggle('hidden');
+            shop.classList.toggle('flex');
+            if (!shop.classList.contains('hidden')) renderShop();
+        }
+
+        function renderShop() {
+            const grid = document.getElementById('shop-grid');
+            grid.innerHTML = '';
+            
+            gameState.pets.forEach(pet => {
+                const isOwned = gameState.ownedPets.includes(pet.name);
+                const isActive = gameState.activePet === pet.name;
+                
+                const card = document.createElement('div');
+                card.className = `pet-card p-4 rounded-2xl flex items-center gap-4 cursor-pointer ${isOwned ? 'owned shadow-inner' : 'bg-gray-50 hover:bg-gray-100 shadow-md'}`;
+                
+                card.innerHTML = `
+                    <div class="text-4xl ${!isOwned ? 'locked' : ''}">${pet.emoji}</div>
+                    <div class="flex-grow">
+                        <h3 class="font-bold text-lg">${pet.name}</h3>
+                        <p class="text-xs text-gray-500">${pet.desc}</p>
+                    </div>
+                    <div>
+                        ${isOwned ? 
+                            (isActive ? '<span class="text-green-600 font-bold text-sm">פעיל</span>' : '<button class="bg-gray-200 px-3 py-1 rounded-full text-xs font-bold">השתמש</button>') : 
+                            `<button class="bg-yellow-400 hover:bg-yellow-500 px-3 py-1 rounded-full text-xs font-bold shadow-sm">${pet.price} 💰</button>`
+                        }
+                    </div>
+                `;
+
+                card.onclick = () => handleShopAction(pet);
+                grid.appendChild(card);
+            });
+        }
+
+        function handleShopAction(pet) {
+            const isOwned = gameState.ownedPets.includes(pet.name);
+            
+            if (isOwned) {
+                gameState.activePet = pet.name;
+            } else {
+                if (gameState.coins >= pet.price) {
+                    gameState.coins -= pet.price;
+                    gameState.ownedPets.push(pet.name);
+                    gameState.activePet = pet.name;
+                } else {
+                    alert("אין לך מספיק מטבעות! פתור עוד תרגילי כפל.");
+                    return;
+                }
+            }
+            saveProgress();
+            updateUI();
+            renderShop();
+        }
+
+        function triggerConfetti() {
+            for (let i = 0; i < 20; i++) {
+                const confetti = document.createElement('div');
+                confetti.className = 'confetti';
+                confetti.style.left = Math.random() * 100 + '%';
+                confetti.style.top = '0';
+                confetti.style.backgroundColor = `hsl(${Math.random() * 360}, 100%, 50%)`;
+                confetti.style.borderRadius = Math.random() > 0.5 ? '50%' : '0';
+                document.body.appendChild(confetti);
+
+                const animation = confetti.animate([
+                    { transform: 'translateY(0) rotate(0)', opacity: 1 },
+                    { transform: `translateY(${window.innerHeight}px) rotate(${Math.random() * 360}deg)`, opacity: 0 }
+                ], {
+                    duration: 1000 + Math.random() * 1000,
+                    easing: 'cubic-bezier(0, .9, .57, 1)'
+                });
+
+                animation.onfinish = () => confetti.remove();
+            }
+        }
+
+        // Persistent Storage
+        function saveProgress() {
+            const data = {
+                coins: gameState.coins,
+                ownedPets: gameState.ownedPets,
+                activePet: gameState.activePet
+            };
+            localStorage.setItem('math_adventure_save', JSON.stringify(data));
+        }
+
+        function loadProgress() {
+            const saved = localStorage.getItem('math_adventure_save');
+            if (saved) {
+                const data = JSON.parse(saved);
+                gameState.coins = data.coins || 0;
+                gameState.ownedPets = data.ownedPets || ['אפרוח'];
+                gameState.activePet = data.activePet || 'אפרוח';
+            }
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
