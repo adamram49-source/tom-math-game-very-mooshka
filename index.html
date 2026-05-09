@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>הרפתקת הכפל - לומדים וקונים</title>
+    <title>הרפתקת הכפל - הגרסה הסופית</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@400;700;800&display=swap" rel="stylesheet">
     <style>
@@ -11,324 +11,413 @@
             font-family: 'Assistant', sans-serif;
             background: linear-gradient(135deg, #f6d365 0%, #fda085 100%);
             min-height: 100vh;
-            overflow-x: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            transition: background 0.8s ease;
+            margin: 0;
         }
         .game-card {
             background: rgba(255, 255, 255, 0.95);
             border-radius: 2rem;
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.2);
+            width: 100%;
+            max-width: 500px;
+            padding: 2rem;
+            z-index: 10;
+            position: relative;
         }
-        .stat-badge {
-            background: white;
-            padding: 0.5rem 1.25rem;
-            border-radius: 9999px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        #active-pet-emoji {
+            display: inline-block;
+            transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            will-change: transform;
+            image-rendering: -webkit-optimize-contrast;
+            line-height: 1;
+        }
+        .pet-container {
+            height: 140px;
             display: flex;
             align-items: center;
-            gap: 0.5rem;
+            justify-content: center;
+            margin-top: 1rem;
         }
-        .answer-btn {
-            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+
+        /* --- אנימציות מעבר --- */
+        @keyframes mega-shake {
+            0% { transform: translate(0,0) rotate(0); }
+            10% { transform: translate(-20px, -20px) rotate(-5deg); }
+            20% { transform: translate(20px, 20px) rotate(5deg); }
+            30% { transform: translate(-30px, 10px) rotate(-10deg); }
+            40% { transform: translate(30px, -10px) rotate(10deg); }
+            100% { transform: translate(0,0) rotate(0); }
         }
-        .answer-btn:hover {
-            transform: scale(1.05);
+        .mega-shake-active { animation: mega-shake 0.1s infinite; }
+
+        #flash-overlay { position: fixed; inset: 0; background: white; z-index: 100; display: none; pointer-events: none; }
+        #black-screen { position: fixed; inset: 0; background: black; z-index: 101; display: none; }
+
+        .magic-mode-bg { animation: rainbowBg 10s infinite linear !important; }
+        @keyframes rainbowBg {
+            0% { background: #ff9a9e; }
+            33% { background: #a1c4fd; }
+            66% { background: #d4fc79; }
+            100% { background: #ff9a9e; }
         }
-        .answer-btn:active {
-            transform: scale(0.95);
-        }
-        .floating {
-            animation: floating 3s ease-in-out infinite;
-        }
-        @keyframes floating {
-            0% { transform: translateY(0px); }
-            50% { transform: translateY(-10px); }
-            100% { transform: translateY(0px); }
-        }
-        .confetti {
+
+        .coin-feedback {
             position: absolute;
-            width: 10px;
-            height: 10px;
-            background-color: #f00;
-            z-index: 100;
+            font-weight: 900;
+            font-size: 1.5rem;
+            color: #d97706;
+            pointer-events: none;
+            animation: floatUp 1s forwards;
+            z-index: 50;
         }
-        .pet-card {
-            border: 4px solid transparent;
-            transition: all 0.3s ease;
+        @keyframes floatUp {
+            0% { transform: translateY(0); opacity: 1; }
+            100% { transform: translateY(-100px); opacity: 0; }
         }
-        .pet-card.owned {
-            border-color: #4ade80;
-            background-color: #f0fdf4;
+
+        /* --- מודאל הודעות מתכון --- */
+        #recipe-popup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 2rem;
+            border-radius: 2rem;
+            box-shadow: 0 0 0 100vmax rgba(0,0,0,0.7);
+            z-index: 200;
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+            display: none;
+            border: 4px solid #8b5cf6;
         }
-        .locked {
-            filter: grayscale(1);
-            opacity: 0.7;
-        }
+
+        progress { width: 100%; height: 8px; border-radius: 10px; }
+        progress::-webkit-progress-value { background: #06b6d4; border-radius: 10px; }
     </style>
 </head>
-<body class="p-4 md:p-8 flex flex-col items-center justify-center">
+<body>
 
-    <!-- Top Stats Bar -->
-    <div class="max-w-4xl w-full flex flex-wrap justify-between items-center gap-4 mb-8">
-        <div class="flex gap-4">
-            <div class="stat-badge text-yellow-600 font-bold text-xl">
-                <span>💰</span>
-                <span id="coins">0</span>
-            </div>
-            <div class="stat-badge text-red-500 font-bold text-xl">
-                <span>🔥</span>
-                <span id="streak">0</span>
-            </div>
-        </div>
-        <button onclick="toggleShop()" class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-full font-bold shadow-lg flex items-center gap-2 transition-colors">
-            <span>🛒</span>
-            <span>חנות חיות</span>
-        </button>
+    <div id="flash-overlay"></div>
+    <div id="black-screen"></div>
+
+    <!-- מודאל הודעת מתכון -->
+    <div id="recipe-popup">
+        <div id="recipe-msg" class="text-xl font-bold text-gray-800 leading-relaxed"></div>
+        <div class="mt-4 text-sm text-red-500 font-bold">הודעה זו תיעלם בעוד: <span id="timer-sec">60</span> שניות</div>
+        <button onclick="closeRecipe()" class="mt-4 bg-purple-600 text-white px-6 py-2 rounded-full font-bold">הבנתי!</button>
     </div>
 
-    <!-- Main Game Area -->
-    <div id="game-view" class="max-w-2xl w-full game-card p-8 text-center relative overflow-hidden">
-        <div id="feedback" class="absolute top-4 left-0 right-0 font-bold text-2xl transition-all opacity-0 pointer-events-none"></div>
-        
-        <div class="mb-8">
-            <h2 class="text-gray-500 text-lg mb-2">פתור את התרגיל:</h2>
-            <div id="problem" class="text-7xl md:text-8xl font-extrabold text-indigo-900 tracking-tight flex justify-center items-center gap-4">
-                <span id="num1">?</span>
-                <span class="text-indigo-400">×</span>
-                <span id="num2">?</span>
+    <div id="game-ui" class="w-full max-w-4xl px-4 flex flex-col items-center">
+        <!-- Stats -->
+        <div class="w-full flex flex-wrap justify-between items-center mb-6 gap-4">
+            <div class="flex gap-2">
+                <div class="bg-white px-4 py-2 rounded-full shadow-md font-bold text-yellow-600">💰 <span id="coins">0</span></div>
+                <div id="diamond-bar" class="hidden bg-white px-4 py-2 rounded-full shadow-md font-bold text-cyan-500">💎 <span id="diamonds">0</span></div>
+                <div class="bg-white px-4 py-2 rounded-full shadow-md font-bold text-red-500">🔥 <span id="streak">0</span></div>
+            </div>
+            <div class="flex gap-2">
+                <button id="buy-diamond-btn" onclick="buyDiamond()" class="hidden bg-cyan-500 text-white px-4 py-2 rounded-full font-bold shadow-lg text-sm">קנה יהלום (10💰)</button>
+                <button onclick="toggleShop()" class="bg-purple-600 text-white px-5 py-2 rounded-full font-bold shadow-lg text-sm">🛒 חנות</button>
             </div>
         </div>
 
-        <div id="options" class="grid grid-cols-2 gap-4 mt-8">
-            <!-- Buttons will be generated here -->
-        </div>
+        <!-- Main Card -->
+        <div id="main-card" class="game-card text-center">
+            <div id="problem-area">
+                <p class="text-gray-400 font-bold mb-2">כמה זה?</p>
+                <div id="problem" class="text-6xl font-black text-indigo-900 mb-8 tracking-tighter">
+                    <span id="n1">?</span> × <span id="n2">?</span>
+                </div>
+                <div id="options" class="grid grid-cols-2 gap-4"></div>
+            </div>
 
-        <!-- Active Pet Area -->
-        <div id="active-pet-container" class="mt-12 h-24 flex flex-col items-center justify-center gap-2">
-            <div id="active-pet-emoji" class="text-5xl floating"></div>
-            <div id="active-pet-name" class="text-sm font-bold text-gray-500"></div>
+            <div class="pet-container">
+                <div id="active-pet-emoji" style="font-size: 50px;">🐥</div>
+            </div>
+            <div id="pet-info" class="text-xs font-bold text-gray-400 mt-1 uppercase tracking-widest">אפרוח</div>
         </div>
     </div>
 
-    <!-- Shop Modal (Overlay) -->
-    <div id="shop-overlay" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 p-4">
-        <div class="bg-white rounded-3xl max-w-2xl w-full max-h-[80vh] overflow-hidden flex flex-col">
-            <div class="p-6 border-b flex justify-between items-center bg-purple-50">
-                <h2 class="text-2xl font-black text-purple-800">חנות החיות המלכותית 🐾</h2>
-                <button onclick="toggleShop()" class="text-gray-400 hover:text-gray-600 text-3xl">&times;</button>
+    <!-- Shop Overlay -->
+    <div id="shop-overlay" class="fixed inset-0 bg-black/60 hidden z-50 p-4 items-center justify-center">
+        <div class="bg-white rounded-3xl w-full max-w-md max-h-[90vh] flex flex-col">
+            <div class="p-5 border-b flex justify-between items-center">
+                <h2 class="font-black text-xl">חנות החיות 🐾</h2>
+                <button onclick="toggleShop()" class="text-2xl font-bold">&times;</button>
             </div>
-            <div class="p-6 overflow-y-auto grid grid-cols-1 md:grid-cols-2 gap-4" id="shop-grid">
-                <!-- Shop items will be generated here -->
-            </div>
-            <div class="p-6 border-t bg-gray-50 text-center">
-                <p class="text-gray-600">אסוף את כל החיות!</p>
+            <div class="p-5 overflow-y-auto">
+                <div class="bg-purple-50 border-2 border-purple-200 rounded-2xl p-4 mb-6 text-sm text-purple-900 leading-relaxed font-bold">
+                    תום, ברוכים הבאים לחנות החיות, יש כאן משהו קסום, לפני כל חייה שתתקנה רצוי שתצתייד בדף ועפרון מפני שכל חיה שתקנה תתן לך חלק אחד מתוך המתכון הסודי של החיות, אבל!!!<br><br>
+                    רצוי שתעתיק כל חלק מהמתכון שתקבל מהחיות כמה שיותר מהר מפני שכל חלק שתקבל יופיע על המסך למשך דקה אחת בלבד!<br><br>
+                    לאחר שתקנה את כל החיות ותשיג את כל מתעון החיות המלא עליך לבצע את כל הפעולות של המתכון לפי הסדר שהן ממוספרות.<br><br>
+                    לאחר שתבצע את כל השלב מתכון החיות יפעל ומשהו קסום יקרה 🤫!!!.<br><br>
+                    הפעל את מתכון החיות וגלה מהו הדבר הקסום, בהצלחה!!!!!!!!!!
+                </div>
+                <div id="shop-list" class="space-y-4"></div>
             </div>
         </div>
     </div>
 
     <script>
-        // Game State
-        let gameState = {
-            coins: 0,
-            streak: 0,
-            currentProblem: { n1: 0, n2: 0, answer: 0 },
-            ownedPets: ['אפרוח'], // Starting pet
-            activePet: 'אפרוח',
-            pets: [
-                { name: 'אפרוח', emoji: '🐥', price: 0, desc: 'חבר קטן להתחלה' },
-                { name: 'חתלתול', emoji: '🐱', price: 50, desc: 'מיאו! הוא ממש חמוד' },
-                { name: 'כלבלב', emoji: '🐶', price: 100, desc: 'החבר הכי טוב שלך' },
-                { name: 'ארנב', emoji: '🐰', price: 250, desc: 'קופץ משמחה בכל פעם שתצליח' },
-                { name: 'פנדה', emoji: '🐼', price: 500, desc: 'נדיר מאוד ואוהב במבוק' },
-                { name: 'חד קרן', emoji: '🦄', price: 1000, desc: 'החיה הכי קסומה בממלכה' },
-                { name: 'דרקון', emoji: '🐲', price: 2500, desc: 'רק אלופי הכפל האמיתיים יכולים לאלף אותו' }
-            ]
+        const petsData = [
+            { id: 'chick', name: 'אפרוח', emoji: '🐥', price: 0, power: 1, diamondCost: 1 },
+            { id: 'cat', name: 'חתלתול', emoji: '🐱', price: 50, power: 3, diamondCost: 2, msg: '"מיאו, אני חתלתול ואני אומר לך שהחלק הראשון במתכון החיות הוא:\n\n1. דבר ראשון תגיע לרצף של 10 תשובות נכונות\n\nבהצלחה!!!"' },
+            { id: 'dog', name: 'כלבלב', emoji: '🐶', price: 150, power: 8, diamondCost: 3, msg: '"היי, אני הכלבלב ואני חייב להגיד לך את החלק הכי מעניין במתכון החיות:\n\n2. דבר שני עליך לשים את האפרוח\n\nתהנה!!!"' },
+            { id: 'bunny', name: 'ארנב', emoji: '🐰', price: 400, power: 15, diamondCost: 5, msg: '"היי אני ראביט הארנב, ואני רוצה לספר לך את החלק השלישי במתכון החיות כי אני הכי אוהב אותו:\n\n3. דבר שלישי עליך לשים את החד קרן\n\nתהנה תום יא גזור!"' },
+            { id: 'panda', name: 'פנדה', emoji: '🐼', price: 800, power: 25, diamondCost: 6, msg: '"היי תום אני פנדה ואני רוצה שתקשיב לי טוב כי החלק הזה מסוכן:\n\n4. דבר רביעי החלק הזה הוא סודי, עליך לדלג על שלב 5\n\nבהצלחה ותיזהר!!!"' },
+            { id: 'unicorn', name: 'חד קרן', emoji: '🦄', price: 1500, power: 40, diamondCost: 8, msg: '"היי תום אני חד קרן וכמו שאתה יכול לנחש יש לי קרן אחת, זאת ההודעה שלי:\n\n5. דבר חמישי עליך לשים את הדרקון\n\nבהצלחה ותיזהר לא להישרף מהדרקון!"' },
+            { id: 'dragon', name: 'דרקון', emoji: '🐲', price: 3000, power: 100, diamondCost: 15, msg: '"היי תום אני שמח לבסר לך את החלק האחרון במתכון החיות:\n\n6. דבר שישי ואחרון עליך לענות נכון על השאלה שמופיעה כרגע\n\nבהצלחה תום אני מאמין בך!!!"' }
+        ];
+
+        let state = {
+            coins: 0, diamonds: 0, streak: 0,
+            owned: ['chick'], active: 'chick', isMagic: false,
+            growth: {}, feeds: {}, recipeStep: 0
         };
 
-        // Initialize Game
+        let currentAns = 0;
+        let isProcessing = false;
+        let recipeTimer = null;
+
         function init() {
-            loadProgress();
-            generateProblem();
-            updateUI();
-            renderShop();
+            const saved = localStorage.getItem('math_quest_pro_v2');
+            if (saved) {
+                state = JSON.parse(saved);
+                if (state.isMagic) enableMagicUI();
+            }
+            render();
+            newProblem();
         }
 
-        function generateProblem() {
-            // Numbers 2 to 9 as requested
-            const n1 = Math.floor(Math.random() * 8) + 2;
-            const n2 = Math.floor(Math.random() * 8) + 2;
-            const answer = n1 * n2;
-            
-            gameState.currentProblem = { n1, n2, answer };
-            
-            document.getElementById('num1').innerText = n1;
-            document.getElementById('num2').innerText = n2;
-
-            // Generate options
-            let options = [answer];
-            while (options.length < 4) {
-                let wrong = (Math.floor(Math.random() * 8) + 2) * (Math.floor(Math.random() * 8) + 2);
-                if (!options.includes(wrong)) options.push(wrong);
+        function newProblem() {
+            isProcessing = false;
+            let a, b;
+            if (state.isMagic) {
+                a = Math.floor(Math.random() * 6) + 3;
+                b = Math.floor(Math.random() * 6) + 3;
+            } else {
+                a = Math.floor(Math.random() * 8) + 2;
+                b = Math.floor(Math.random() * 8) + 2;
             }
-            
-            // Shuffle
-            options.sort(() => Math.random() - 0.5);
+            currentAns = a * b;
+            document.getElementById('n1').innerText = a;
+            document.getElementById('n2').innerText = b;
 
-            const optionsDiv = document.getElementById('options');
-            optionsDiv.innerHTML = '';
-            options.forEach(opt => {
+            const opts = [currentAns];
+            while(opts.length < 4) {
+                let off = (Math.floor(Math.random() * 5) + 1) * (Math.random() < 0.5 ? 1 : -1);
+                let fake = currentAns + off;
+                if(fake > 0 && !opts.includes(fake)) opts.push(fake);
+            }
+            opts.sort(() => Math.random() - 0.5);
+
+            const container = document.getElementById('options');
+            container.innerHTML = '';
+            opts.forEach(opt => {
                 const btn = document.createElement('button');
-                btn.className = "answer-btn bg-white border-4 border-indigo-100 hover:border-indigo-400 text-indigo-900 text-3xl font-bold py-6 rounded-2xl shadow-sm";
+                btn.className = "answer-btn bg-indigo-50 hover:bg-indigo-100 text-indigo-900 font-black py-4 rounded-2xl text-2xl border-b-4 border-indigo-200 transition-all";
                 btn.innerText = opt;
-                btn.onclick = () => checkAnswer(opt);
-                optionsDiv.appendChild(btn);
+                btn.onclick = () => check(opt, btn);
+                container.appendChild(btn);
             });
         }
 
-        function checkAnswer(selected) {
-            const isCorrect = selected === gameState.currentProblem.answer;
-            const feedback = document.getElementById('feedback');
-            
-            if (isCorrect) {
-                gameState.streak++;
-                // Bonus coins based on streak
-                const earned = 10 + Math.floor(gameState.streak / 3) * 5;
-                gameState.coins += earned;
-                
-                showFeedback("נכון מאוד! +" + earned + "💰", "text-green-500");
-                triggerConfetti();
-                saveProgress();
-                setTimeout(generateProblem, 600);
+        function check(val, btn) {
+            if (isProcessing) return;
+            isProcessing = true;
+            document.querySelectorAll('.answer-btn').forEach(b => b.disabled = true);
+
+            if (val === currentAns) {
+                state.streak++;
+                btn.classList.replace('bg-indigo-50', 'bg-green-400');
+                btn.classList.add('text-white');
+
+                const pData = petsData.find(p => p.id === state.active);
+                const gLvl = state.growth[state.active] || 0;
+                const petBonus = pData.power * (1 + gLvl);
+                const streakBonus = Math.floor(state.streak / 5) * 10;
+                const totalGained = 10 + petBonus + streakBonus;
+
+                spawnCoinFeedback(totalGained);
+                state.coins += totalGained;
+
+                if (state.streak >= 10 && state.recipeStep === 0) state.recipeStep = 1;
+
+                if (state.recipeStep === 3 && state.active === 'unicorn' && !state.isMagic) {
+                    triggerMegaMagicEvent();
+                    return;
+                }
             } else {
-                gameState.streak = 0;
-                showFeedback("אופס! נסה שוב", "text-red-500");
-                // Visual shake
-                document.getElementById('game-view').classList.add('animate-bounce');
-                setTimeout(() => document.getElementById('game-view').classList.remove('animate-bounce'), 500);
+                state.streak = 0;
+                state.recipeStep = 0;
+                btn.classList.replace('bg-indigo-50', 'bg-red-400');
+                btn.classList.add('text-white');
             }
-            updateUI();
+
+            save();
+            render();
+            setTimeout(newProblem, 800);
         }
 
-        function showFeedback(text, colorClass) {
-            const feedback = document.getElementById('feedback');
-            feedback.innerText = text;
-            feedback.className = `absolute top-4 left-0 right-0 font-bold text-2xl transition-all opacity-100 ${colorClass}`;
+        function triggerMegaMagicEvent() {
+            const body = document.body;
+            const flash = document.getElementById('flash-overlay');
+            const black = document.getElementById('black-screen');
+            body.classList.add('mega-shake-active');
+            let flashInterval = setInterval(() => { flash.style.display = flash.style.display === 'none' ? 'block' : 'none'; }, 50);
+
             setTimeout(() => {
-                feedback.style.opacity = '0';
+                clearInterval(flashInterval);
+                flash.style.display = 'none';
+                black.style.display = 'block';
+                setTimeout(() => {
+                    black.style.display = 'none';
+                    state.isMagic = true;
+                    state.recipeStep = 0;
+                    enableMagicUI();
+                    save();
+                    render();
+                    setTimeout(() => { body.classList.remove('mega-shake-active'); newProblem(); }, 2000);
+                }, 2500);
+            }, 4000);
+        }
+
+        function showRecipePopup(text) {
+            const popup = document.getElementById('recipe-popup');
+            const msg = document.getElementById('recipe-msg');
+            const timer = document.getElementById('timer-sec');
+            msg.innerText = text;
+            popup.style.display = 'block';
+            
+            let sec = 60;
+            timer.innerText = sec;
+            if(recipeTimer) clearInterval(recipeTimer);
+            recipeTimer = setInterval(() => {
+                sec--;
+                timer.innerText = sec;
+                if(sec <= 0) closeRecipe();
             }, 1000);
         }
 
-        function updateUI() {
-            document.getElementById('coins').innerText = gameState.coins;
-            document.getElementById('streak').innerText = gameState.streak;
-            
-            // Update active pet
-            const petObj = gameState.pets.find(p => p.name === gameState.activePet);
-            if (petObj) {
-                document.getElementById('active-pet-emoji').innerText = petObj.emoji;
-                document.getElementById('active-pet-name').innerText = petObj.name;
+        function closeRecipe() {
+            document.getElementById('recipe-popup').style.display = 'none';
+            if(recipeTimer) clearInterval(recipeTimer);
+        }
+
+        function buyPet(id, price) {
+            if (state.coins >= price) {
+                state.coins -= price;
+                state.owned.push(id);
+                const p = petsData.find(x => x.id === id);
+                if(p.msg) showRecipePopup(p.msg);
+                save(); render(); renderShop();
             }
+        }
+
+        function selectPet(id) {
+            state.active = id;
+            if (state.streak >= 10) {
+                if (id === 'chick' && state.recipeStep === 1) state.recipeStep = 2;
+                else if (id === 'unicorn' && state.recipeStep === 2) state.recipeStep = 3;
+                else if (id !== 'chick' && id !== 'unicorn') state.recipeStep = 1;
+            } else { state.recipeStep = 0; }
+            save(); render(); renderShop();
+        }
+
+        function spawnCoinFeedback(amount) {
+            const fb = document.createElement('div');
+            fb.className = 'coin-feedback';
+            fb.innerText = `+${amount}💰`;
+            fb.style.left = '50%';
+            fb.style.top = '20%';
+            document.getElementById('main-card').appendChild(fb);
+            setTimeout(() => fb.remove(), 1000);
+        }
+
+        function enableMagicUI() {
+            document.body.classList.add('magic-mode-bg');
+            document.getElementById('diamond-bar').classList.remove('hidden');
+            document.getElementById('buy-diamond-btn').classList.remove('hidden');
+        }
+
+        function buyDiamond() {
+            if (state.coins >= 10) { state.coins -= 10; state.diamonds++; save(); render(); }
         }
 
         function toggleShop() {
-            const shop = document.getElementById('shop-overlay');
-            shop.classList.toggle('hidden');
-            shop.classList.toggle('flex');
-            if (!shop.classList.contains('hidden')) renderShop();
+            const el = document.getElementById('shop-overlay');
+            el.classList.toggle('hidden'); el.classList.toggle('flex');
+            if (!el.classList.contains('hidden')) renderShop();
         }
 
         function renderShop() {
-            const grid = document.getElementById('shop-grid');
-            grid.innerHTML = '';
-            
-            gameState.pets.forEach(pet => {
-                const isOwned = gameState.ownedPets.includes(pet.name);
-                const isActive = gameState.activePet === pet.name;
-                
-                const card = document.createElement('div');
-                card.className = `pet-card p-4 rounded-2xl flex items-center gap-4 cursor-pointer ${isOwned ? 'owned shadow-inner' : 'bg-gray-50 hover:bg-gray-100 shadow-md'}`;
-                
-                card.innerHTML = `
-                    <div class="text-4xl ${!isOwned ? 'locked' : ''}">${pet.emoji}</div>
-                    <div class="flex-grow">
-                        <h3 class="font-bold text-lg">${pet.name}</h3>
-                        <p class="text-xs text-gray-500">${pet.desc}</p>
-                    </div>
-                    <div>
-                        ${isOwned ? 
-                            (isActive ? '<span class="text-green-600 font-bold text-sm">פעיל</span>' : '<button class="bg-gray-200 px-3 py-1 rounded-full text-xs font-bold">השתמש</button>') : 
-                            `<button class="bg-yellow-400 hover:bg-yellow-500 px-3 py-1 rounded-full text-xs font-bold shadow-sm">${pet.price} 💰</button>`
-                        }
+            const list = document.getElementById('shop-list');
+            list.innerHTML = '';
+            petsData.forEach(p => {
+                const isOwned = state.owned.includes(p.id);
+                const isActive = state.active === p.id;
+                const gLvl = state.growth[p.id] || 0;
+                const feeds = state.feeds[p.id] || 0;
+                const item = document.createElement('div');
+                item.className = `p-4 rounded-2xl border-2 ${isActive ? 'border-purple-500 bg-purple-50' : 'border-gray-100 bg-white'}`;
+                let html = `
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <span class="text-3xl">${p.emoji}</span>
+                            <div><div class="font-bold">${p.name} ${gLvl > 0 ? `(רמה ${gLvl})` : ''}</div>
+                            <div class="text-[10px] text-gray-500">בונוס: +${p.power * (1+gLvl)} 💰</div></div>
+                        </div>
+                        <button onclick="${isOwned ? `selectPet('${p.id}')` : `buyPet('${p.id}', ${p.price})`}" 
+                                class="px-4 py-1 rounded-full font-bold text-xs ${isActive ? 'bg-purple-500 text-white' : 'bg-gray-200'}">
+                            ${isOwned ? (isActive ? 'פעיל' : 'בחר') : p.price + ' 💰'}
+                        </button>
                     </div>
                 `;
-
-                card.onclick = () => handleShopAction(pet);
-                grid.appendChild(card);
+                if (state.isMagic && isOwned) {
+                    html += `<div class="mt-3 pt-3 border-t border-dashed">
+                        <div class="flex justify-between text-[10px] mb-1 font-bold"><span>התקדמות לרמה ${gLvl + 1}:</span><span>${feeds}/10</span></div>
+                        <progress value="${feeds}" max="10"></progress>
+                        <button onclick="feedPet('${p.id}')" ${gLvl >= 10 ? 'disabled' : ''} class="w-full mt-2 bg-cyan-500 text-white text-xs py-1.5 rounded-lg font-bold">
+                            ${gLvl >= 10 ? 'רמה מקסימלית' : `האכל ב-${p.diamondCost} 💎`}
+                        </button></div>`;
+                }
+                item.innerHTML = html;
+                list.appendChild(item);
             });
         }
 
-        function handleShopAction(pet) {
-            const isOwned = gameState.ownedPets.includes(pet.name);
-            
-            if (isOwned) {
-                gameState.activePet = pet.name;
-            } else {
-                if (gameState.coins >= pet.price) {
-                    gameState.coins -= pet.price;
-                    gameState.ownedPets.push(pet.name);
-                    gameState.activePet = pet.name;
-                } else {
-                    alert("אין לך מספיק מטבעות! פתור עוד תרגילי כפל.");
-                    return;
-                }
-            }
-            saveProgress();
-            updateUI();
-            renderShop();
-        }
-
-        function triggerConfetti() {
-            for (let i = 0; i < 20; i++) {
-                const confetti = document.createElement('div');
-                confetti.className = 'confetti';
-                confetti.style.left = Math.random() * 100 + '%';
-                confetti.style.top = '0';
-                confetti.style.backgroundColor = `hsl(${Math.random() * 360}, 100%, 50%)`;
-                confetti.style.borderRadius = Math.random() > 0.5 ? '50%' : '0';
-                document.body.appendChild(confetti);
-
-                const animation = confetti.animate([
-                    { transform: 'translateY(0) rotate(0)', opacity: 1 },
-                    { transform: `translateY(${window.innerHeight}px) rotate(${Math.random() * 360}deg)`, opacity: 0 }
-                ], {
-                    duration: 1000 + Math.random() * 1000,
-                    easing: 'cubic-bezier(0, .9, .57, 1)'
-                });
-
-                animation.onfinish = () => confetti.remove();
+        function feedPet(id) {
+            const p = petsData.find(x => x.id === id);
+            if (state.diamonds >= p.diamondCost) {
+                state.diamonds -= p.diamondCost;
+                state.feeds[id] = (state.feeds[id] || 0) + 1;
+                if (state.feeds[id] >= 10) { state.feeds[id] = 0; state.growth[id] = (state.growth[id] || 0) + 1; }
+                save(); render(); renderShop();
             }
         }
 
-        // Persistent Storage
-        function saveProgress() {
-            const data = {
-                coins: gameState.coins,
-                ownedPets: gameState.ownedPets,
-                activePet: gameState.activePet
-            };
-            localStorage.setItem('math_adventure_save', JSON.stringify(data));
+        function render() {
+            document.getElementById('coins').innerText = Math.floor(state.coins);
+            document.getElementById('diamonds').innerText = state.diamonds;
+            document.getElementById('streak').innerText = state.streak;
+            const p = petsData.find(x => x.id === state.active);
+            const gLvl = state.growth[state.active] || 0;
+            const emojiEl = document.getElementById('active-pet-emoji');
+            emojiEl.innerText = p.emoji;
+            document.getElementById('pet-info').innerText = `${p.name} | רמה ${gLvl}`;
+            const scale = 1 + (gLvl * 0.15);
+            emojiEl.style.transform = `scale(${scale})`;
         }
 
-        function loadProgress() {
-            const saved = localStorage.getItem('math_adventure_save');
-            if (saved) {
-                const data = JSON.parse(saved);
-                gameState.coins = data.coins || 0;
-                gameState.ownedPets = data.ownedPets || ['אפרוח'];
-                gameState.activePet = data.activePet || 'אפרוח';
-            }
-        }
+        function save() { localStorage.setItem('math_quest_pro_v2', JSON.stringify(state)); }
 
-        window.onload = init;
+        init();
     </script>
 </body>
 </html>
